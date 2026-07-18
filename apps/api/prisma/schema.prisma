@@ -51,6 +51,8 @@ model User {
   posts            Post[]            @relation("PostAuthor")
   comments         Comment[]         @relation("CommentAuthor")
   reactions        Reaction[]
+  conversations    ConversationParticipant[]
+  messagesSent     Message[]         @relation("MessageAuthor")
 
   @@index([role, status])
   @@map("users")
@@ -273,6 +275,47 @@ model Reaction {
   // Une seule réaction par membre et par publication (changer = remplacer)
   @@unique([postId, userId])
   @@map("reactions")
+}
+
+// ─────────────────────────── Messagerie ───────────────────────────
+
+model Conversation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  // Date du dernier message : tri de la liste des conversations
+  updatedAt DateTime @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Marqueur de lecture : tout message postérieur est « non lu »
+  lastReadAt     DateTime     @default(now())
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User         @relation("MessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  content        String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
 }
 
 // ─────────────────────────── Certificats ───────────────────────────

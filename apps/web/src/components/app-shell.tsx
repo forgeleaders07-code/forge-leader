@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Award, GraduationCap, LayoutDashboard, LogOut, ShieldCheck, Users } from 'lucide-react';
+import { Award, GraduationCap, LayoutDashboard, LogOut, MessageCircle, ShieldCheck, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -13,6 +13,7 @@ interface NavLink {
   href: string;
   label: string;
   icon: React.ComponentType<{ size?: number | string; className?: string }>;
+  badge?: number;
 }
 
 /**
@@ -30,6 +31,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     queryKey: ['me'],
     queryFn: () => api<AuthUser>('/users/me'),
     enabled: ready,
+  });
+
+  const { data: unread } = useQuery({
+    queryKey: ['unread-count'],
+    queryFn: () => api<{ unread: number }>('/messages/unread-count'),
+    enabled: ready,
+    refetchInterval: 30_000,
   });
 
   useEffect(() => {
@@ -58,6 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const links: NavLink[] = [
     { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
     { href: '/communaute', label: 'Communauté', icon: Users },
+    { href: '/messages', label: 'Messages', icon: MessageCircle, badge: unread?.unread },
     { href: '/certificats', label: 'Mes certificats', icon: Award },
     ...(me && me.role !== 'LEARNER'
       ? [{ href: '/admin/formations', label: 'Administration', icon: ShieldCheck }]
@@ -81,7 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
 
         <nav className="flex-1 space-y-1">
-          {links.map(({ href, label, icon: Icon }) => (
+          {links.map(({ href, label, icon: Icon, badge }) => (
             <Link
               key={href}
               href={href}
@@ -92,7 +101,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               }`}
             >
               <Icon size={18} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {!!badge && badge > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1.5 text-[10px] font-bold text-white">
+                  {badge}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
@@ -133,16 +147,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ── Navigation inférieure mobile (Vol 2 §30) ── */}
       <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-line bg-surface md:hidden">
-        {links.map(({ href, label, icon: Icon }) => (
+        {links.map(({ href, label, icon: Icon, badge }) => (
           <Link
             key={href}
             href={href}
-            className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition ${
+            className={`relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition ${
               isActive(href) ? 'text-gold' : 'text-muted'
             }`}
           >
             <Icon size={20} />
             {label.split(' ')[0] === 'Tableau' ? 'Accueil' : label.split(' ').pop()}
+            {!!badge && badge > 0 && (
+              <span className="absolute right-1/4 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[9px] font-bold text-white">
+                {badge}
+              </span>
+            )}
           </Link>
         ))}
         <button
