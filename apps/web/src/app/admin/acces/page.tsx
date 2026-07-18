@@ -68,32 +68,32 @@ function GrantAccessSection() {
   }
 
   return (
-    <section className="rounded-2xl border border-forge-700 bg-forge-900 p-6">
+    <section className="rounded-card border border-line bg-surface p-6">
       <h1 className="mb-1 text-xl font-bold">Attribuer un accès</h1>
-      <p className="mb-5 text-sm text-forge-300">
+      <p className="mb-5 text-sm text-muted">
         Pour les ventes hors Systeme.io (WhatsApp, Mobile Money…). Le compte est créé
         automatiquement si l&apos;email est inconnu.
       </p>
 
       <form onSubmit={onGrant} className="flex flex-wrap items-end gap-3">
         <label className="block text-sm">
-          <span className="mb-1 block text-forge-300">Email de l&apos;apprenant</span>
+          <span className="mb-1 block text-muted">Email de l&apos;apprenant</span>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="apprenant@exemple.com"
-            className="w-72 rounded-lg border border-forge-700 bg-forge-800 px-3 py-2 outline-none focus:border-ember-500"
+            className="w-72 rounded-lg border border-line bg-soft px-3 py-2 outline-none focus:border-gold"
           />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-forge-300">Formation</span>
+          <span className="mb-1 block text-muted">Formation</span>
           <select
             required
             value={courseId}
             onChange={(e) => setCourseId(e.target.value)}
-            className="w-72 rounded-lg border border-forge-700 bg-forge-800 px-3 py-2 outline-none focus:border-ember-500"
+            className="w-72 rounded-lg border border-line bg-soft px-3 py-2 outline-none focus:border-gold"
           >
             <option value="">— Choisir —</option>
             {courses?.map((c) => (
@@ -106,14 +106,14 @@ function GrantAccessSection() {
         <button
           type="submit"
           disabled={grant.isPending}
-          className="rounded-lg bg-ember-500 px-4 py-2 text-sm font-semibold text-forge-950 transition hover:bg-ember-400 disabled:opacity-50"
+          className="rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-white transition hover:bg-gold-600 disabled:opacity-50"
         >
           {grant.isPending ? 'Attribution…' : 'Attribuer'}
         </button>
         {message && (
           <span
             role="status"
-            className={`text-sm ${message.kind === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}
+            className={`text-sm ${message.kind === 'ok' ? 'text-success' : 'text-danger'}`}
           >
             {message.text}
           </span>
@@ -122,23 +122,23 @@ function GrantAccessSection() {
 
       {courseId && (
         <div className="mt-6">
-          <h2 className="mb-2 text-sm font-semibold text-forge-300">
+          <h2 className="mb-2 text-sm font-semibold text-muted">
             Inscrits ({enrollments?.filter((e) => !e.revokedAt).length ?? 0} actifs)
           </h2>
-          <div className="max-h-72 overflow-y-auto rounded-lg border border-forge-800">
+          <div className="max-h-72 overflow-y-auto rounded-lg border border-line">
             {enrollments?.map((enr) => (
               <div
                 key={enr.id}
-                className="flex items-center justify-between gap-3 border-b border-forge-800 px-4 py-2 text-sm last:border-0"
+                className="flex items-center justify-between gap-3 border-b border-line px-4 py-2 text-sm last:border-0"
               >
                 <div className="min-w-0">
                   <span className="truncate">{enr.user.email}</span>
                   {enr.revokedAt && (
-                    <span className="ml-2 rounded bg-red-950 px-1.5 py-0.5 text-[10px] text-red-300">
+                    <span className="ml-2 rounded bg-danger/10 px-1.5 py-0.5 text-[10px] text-danger">
                       révoqué
                     </span>
                   )}
-                  <span className="ml-2 text-xs text-forge-500">{enr.source}</span>
+                  <span className="ml-2 text-xs text-muted">{enr.source}</span>
                 </div>
                 {!enr.revokedAt && (
                   <button
@@ -147,7 +147,7 @@ function GrantAccessSection() {
                         revoke.mutate(enr.user.email);
                       }
                     }}
-                    className="shrink-0 rounded-lg border border-forge-700 px-3 py-1 text-xs text-forge-300 transition hover:border-red-800 hover:text-red-300"
+                    className="shrink-0 rounded-lg border border-line px-3 py-1 text-xs text-muted transition hover:border-danger/40 hover:text-danger"
                   >
                     Révoquer
                   </button>
@@ -155,7 +155,7 @@ function GrantAccessSection() {
               </div>
             ))}
             {enrollments?.length === 0 && (
-              <p className="px-4 py-3 text-sm text-forge-500">Aucun inscrit pour le moment.</p>
+              <p className="px-4 py-3 text-sm text-muted">Aucun inscrit pour le moment.</p>
             )}
           </div>
         </div>
@@ -172,23 +172,23 @@ function MembersSection() {
   });
 
   return (
-    <section className="rounded-2xl border border-forge-700 bg-forge-900 p-6">
+    <section className="rounded-card border border-line bg-surface p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-xl font-bold">Membres</h2>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Rechercher (email, nom)…"
-          className="w-72 rounded-lg border border-forge-700 bg-forge-800 px-3 py-2 text-sm outline-none focus:border-ember-500"
+          className="w-72 rounded-lg border border-line bg-soft px-3 py-2 text-sm outline-none focus:border-gold"
         />
       </div>
 
-      {isLoading && <p className="text-sm text-forge-300">Chargement…</p>}
+      {isLoading && <p className="text-sm text-muted">Chargement…</p>}
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-forge-700 text-xs uppercase tracking-wide text-forge-500">
+            <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">
               <th className="px-3 py-2">Membre</th>
               <th className="px-3 py-2">Rôle</th>
               <th className="px-3 py-2">Statut</th>
@@ -198,22 +198,22 @@ function MembersSection() {
           </thead>
           <tbody>
             {users?.map((u) => (
-              <tr key={u.id} className="border-b border-forge-800 last:border-0">
+              <tr key={u.id} className="border-b border-line last:border-0">
                 <td className="px-3 py-2">
                   <p className="font-medium">
                     {u.firstName} {u.lastName}
                   </p>
-                  <p className="text-xs text-forge-500">{u.email}</p>
+                  <p className="text-xs text-muted">{u.email}</p>
                 </td>
-                <td className="px-3 py-2 text-forge-300">{u.role}</td>
+                <td className="px-3 py-2 text-muted">{u.role}</td>
                 <td className="px-3 py-2">
                   <span
                     className={`rounded-full border px-2 py-0.5 text-xs ${
                       u.status === 'ACTIVE'
-                        ? 'border-emerald-700 text-emerald-400'
+                        ? 'border-success/40 text-success'
                         : u.status === 'PENDING_ACTIVATION'
-                          ? 'border-forge-500 text-forge-300'
-                          : 'border-red-800 text-red-400'
+                          ? 'border-gold text-muted'
+                          : 'border-danger/40 text-danger'
                     }`}
                   >
                     {u.status === 'ACTIVE'
@@ -223,8 +223,8 @@ function MembersSection() {
                         : 'Suspendu'}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-forge-300">{u.activeEnrollments}</td>
-                <td className="px-3 py-2 text-xs text-forge-500">
+                <td className="px-3 py-2 text-muted">{u.activeEnrollments}</td>
+                <td className="px-3 py-2 text-xs text-muted">
                   {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('fr-FR') : '—'}
                 </td>
               </tr>
@@ -232,7 +232,7 @@ function MembersSection() {
           </tbody>
         </table>
         {users?.length === 0 && (
-          <p className="px-3 py-4 text-sm text-forge-500">Aucun membre trouvé.</p>
+          <p className="px-3 py-4 text-sm text-muted">Aucun membre trouvé.</p>
         )}
       </div>
     </section>

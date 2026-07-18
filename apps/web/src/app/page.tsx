@@ -14,7 +14,7 @@ export default function HomePage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center">
-      <p className="text-forge-300">Chargement…</p>
+      <p className="text-muted">Chargement…</p>
     </main>
   );
 }

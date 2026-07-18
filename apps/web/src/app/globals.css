@@ -2,16 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design System (PRD Vol 2) : tokens bi-thème ───────────────────────── */
+
 :root {
+  color-scheme: light;
+  --c-bg: #ffffff;
+  --c-soft: #f8f6f1; /* beige clair */
+  --c-surface: #ffffff;
+  --c-line: #ececec;
+  --c-ink: #121212;
+  --c-muted: #6b6b6b;
+  --c-gold-soft: #faf5e4;
+}
+
+.dark {
   color-scheme: dark;
+  /* Palette sombre dédiée (§29) — pas une inversion */
+  --c-bg: #0f172a;
+  --c-soft: #131c33;
+  --c-surface: #1e293b;
+  --c-line: #2b3a55;
+  --c-ink: #f8fafc;
+  --c-muted: #9aa7bd;
+  --c-gold-soft: rgba(212, 175, 55, 0.12);
 }
 
 body {
-  @apply bg-forge-950 text-forge-100 antialiased;
+  background-color: var(--c-bg);
+  color: var(--c-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus visible uniforme (WCAG 2.2 AA) */
+:focus-visible {
+  outline: 2px solid #d4af37;
+  outline-offset: 2px;
 }
 
 /* Dissuasion basique de la sélection/copie sur les zones de contenu protégé */
 .protected-content {
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Impression du certificat : ne garder que la zone imprimable */
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
 }

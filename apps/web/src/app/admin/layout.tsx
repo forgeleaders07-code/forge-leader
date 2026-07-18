@@ -34,7 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (isLoading || !me || me.role === 'LEARNER') {
     return (
       <main className="flex min-h-screen items-center justify-center">
-        <p className="text-forge-300">Chargement…</p>
+        <p className="text-muted">Chargement…</p>
       </main>
     );
   }
@@ -46,11 +46,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-10 border-b border-forge-800 bg-forge-950/90 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-8">
             <Link href="/dashboard" className="text-lg font-bold tracking-tight">
-              La Forge <span className="text-ember-500">des Leaders</span>
+              La Forge <span className="text-gold">des Leaders</span>
             </Link>
             <nav className="flex gap-1">
               {links.map((l) => (
@@ -59,8 +59,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   href={l.href}
                   className={`rounded-lg px-3 py-1.5 text-sm transition ${
                     pathname.startsWith(l.href)
-                      ? 'bg-forge-700 text-forge-100'
-                      : 'text-forge-300 hover:bg-forge-800'
+                      ? 'bg-line text-ink'
+                      : 'text-muted hover:bg-soft'
                   }`}
                 >
                   {l.label}
@@ -69,7 +69,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <span className="rounded-full border border-ember-600 px-3 py-1 text-xs text-ember-400">
+            <span className="rounded-full border border-gold px-3 py-1 text-xs text-gold">
               {me.role === 'ADMIN' ? 'Administrateur' : 'Formateur'}
             </span>
             <button
@@ -77,7 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 await logout();
                 router.replace('/connexion');
               }}
-              className="rounded-lg border border-forge-700 px-4 py-2 text-sm text-forge-300 transition hover:border-forge-500 hover:text-forge-100"
+              className="rounded-lg border border-line px-4 py-2 text-sm text-muted transition hover:border-gold hover:text-ink"
             >
               Se déconnecter
             </button>

@@ -109,17 +109,17 @@ export function VideoUploader({ lessonId, courseId }: { lessonId: string; course
         type="button"
         disabled={busy}
         onClick={() => inputRef.current?.click()}
-        className="rounded-lg border border-forge-700 px-3 py-1.5 transition hover:border-ember-600 disabled:opacity-50"
+        className="rounded-lg border border-line px-3 py-1.5 transition hover:border-gold disabled:opacity-50"
       >
         📤 Téléverser une vidéo
       </button>
 
-      {state.step === 'preparing' && <span className="text-forge-300">Préparation…</span>}
+      {state.step === 'preparing' && <span className="text-muted">Préparation…</span>}
       {state.step === 'uploading' && (
-        <span className="flex items-center gap-2 text-forge-300">
-          <span className="h-1.5 w-28 overflow-hidden rounded-full bg-forge-700">
+        <span className="flex items-center gap-2 text-muted">
+          <span className="h-1.5 w-28 overflow-hidden rounded-full bg-line">
             <span
-              className="block h-full rounded-full bg-ember-500 transition-all"
+              className="block h-full rounded-full bg-gold transition-all"
               style={{ width: `${state.percent}%` }}
             />
           </span>
@@ -127,15 +127,15 @@ export function VideoUploader({ lessonId, courseId }: { lessonId: string; course
         </span>
       )}
       {state.step === 'processing' && (
-        <span className="text-forge-300">Encodage en cours chez le fournisseur…</span>
+        <span className="text-muted">Encodage en cours chez le fournisseur…</span>
       )}
       {state.step === 'ready' && (
-        <span className="text-emerald-400">
+        <span className="text-success">
           ✓ Vidéo prête
           {state.durationSeconds ? ` (${Math.round(state.durationSeconds / 60)} min)` : ''}
         </span>
       )}
-      {state.step === 'error' && <span className="text-red-400">{state.message}</span>}
+      {state.step === 'error' && <span className="text-danger">{state.message}</span>}
     </div>
   );
 }

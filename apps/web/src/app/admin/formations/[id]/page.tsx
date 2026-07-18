@@ -6,6 +6,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import type { AdminChapter, AdminCourseDetail, AdminLesson, AdminModule } from '@/lib/admin-types';
 import { VideoUploader } from '@/components/video-uploader';
+import { QuizEditor } from '@/components/quiz-editor';
 
 /** Éditeur complet d'une formation : métadonnées + arborescence du contenu. */
 export default function CourseEditorPage() {
@@ -16,8 +17,8 @@ export default function CourseEditorPage() {
     queryFn: () => api<AdminCourseDetail>(`/admin/courses/${id}`),
   });
 
-  if (isLoading) return <p className="text-forge-300">Chargement…</p>;
-  if (!course) return <p className="text-forge-300">Formation introuvable.</p>;
+  if (isLoading) return <p className="text-muted">Chargement…</p>;
+  if (!course) return <p className="text-muted">Formation introuvable.</p>;
 
   return (
     <div className="space-y-10">
@@ -80,15 +81,15 @@ function MetadataForm({ course }: { course: AdminCourseDetail }) {
   }
 
   return (
-    <section className="rounded-2xl border border-forge-700 bg-forge-900 p-6">
+    <section className="rounded-card border border-line bg-surface p-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-bold">{course.title}</h1>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-forge-500">Statut : {course.status}</span>
+          <span className="text-xs text-muted">Statut : {course.status}</span>
           {course.status !== 'PUBLISHED' && (
             <button
               onClick={() => setStatus('PUBLISHED')}
-              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold transition hover:bg-emerald-500"
+              className="rounded-lg bg-success px-3 py-1.5 text-sm font-semibold transition hover:opacity-90"
             >
               Publier
             </button>
@@ -96,7 +97,7 @@ function MetadataForm({ course }: { course: AdminCourseDetail }) {
           {course.status === 'PUBLISHED' && (
             <button
               onClick={() => setStatus('DRAFT')}
-              className="rounded-lg border border-forge-700 px-3 py-1.5 text-sm transition hover:border-forge-500"
+              className="rounded-lg border border-line px-3 py-1.5 text-sm transition hover:border-gold"
             >
               Repasser en brouillon
             </button>
@@ -106,32 +107,32 @@ function MetadataForm({ course }: { course: AdminCourseDetail }) {
 
       <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm">
-          <span className="mb-1 block text-forge-300">Titre</span>
+          <span className="mb-1 block text-muted">Titre</span>
           <input
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="w-full rounded-lg border border-forge-700 bg-forge-800 px-3 py-2 outline-none focus:border-ember-500"
+            className="w-full rounded-lg border border-line bg-soft px-3 py-2 outline-none focus:border-gold"
           />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-forge-300">Slug (URL)</span>
+          <span className="mb-1 block text-muted">Slug (URL)</span>
           <input
             value={form.slug}
             onChange={(e) => setForm({ ...form, slug: e.target.value })}
-            className="w-full rounded-lg border border-forge-700 bg-forge-800 px-3 py-2 font-mono text-xs outline-none focus:border-ember-500"
+            className="w-full rounded-lg border border-line bg-soft px-3 py-2 font-mono text-xs outline-none focus:border-gold"
           />
         </label>
         <label className="block text-sm sm:col-span-2">
-          <span className="mb-1 block text-forge-300">Description</span>
+          <span className="mb-1 block text-muted">Description</span>
           <textarea
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             rows={3}
-            className="w-full rounded-lg border border-forge-700 bg-forge-800 px-3 py-2 outline-none focus:border-ember-500"
+            className="w-full rounded-lg border border-line bg-soft px-3 py-2 outline-none focus:border-gold"
           />
         </label>
         <label className="block text-sm sm:col-span-2">
-          <span className="mb-1 block text-forge-300">
+          <span className="mb-1 block text-muted">
             Identifiants produits Systeme.io (séparés par des virgules) — lient les achats à cette
             formation
           </span>
@@ -139,21 +140,21 @@ function MetadataForm({ course }: { course: AdminCourseDetail }) {
             value={form.externalProductIds}
             onChange={(e) => setForm({ ...form, externalProductIds: e.target.value })}
             placeholder="ex : sio-prod-123, sio-prod-456"
-            className="w-full rounded-lg border border-forge-700 bg-forge-800 px-3 py-2 font-mono text-xs outline-none focus:border-ember-500"
+            className="w-full rounded-lg border border-line bg-soft px-3 py-2 font-mono text-xs outline-none focus:border-gold"
           />
         </label>
         <div className="flex items-center gap-3 sm:col-span-2">
           <button
             type="submit"
             disabled={save.isPending}
-            className="rounded-lg bg-ember-500 px-4 py-2 text-sm font-semibold text-forge-950 transition hover:bg-ember-400 disabled:opacity-50"
+            className="rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-white transition hover:bg-gold-600 disabled:opacity-50"
           >
             {save.isPending ? 'Enregistrement…' : 'Enregistrer'}
           </button>
           {message && (
             <span
               role="status"
-              className={`text-sm ${message.kind === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}
+              className={`text-sm ${message.kind === 'ok' ? 'text-success' : 'text-danger'}`}
             >
               {message.text}
             </span>
@@ -203,11 +204,11 @@ function ContentTree({ course }: { course: AdminCourseDetail }) {
             value={newModuleTitle}
             onChange={(e) => setNewModuleTitle(e.target.value)}
             placeholder="Titre du nouveau module"
-            className="w-64 rounded-lg border border-forge-700 bg-forge-800 px-3 py-2 text-sm outline-none focus:border-ember-500"
+            className="w-64 rounded-lg border border-line bg-soft px-3 py-2 text-sm outline-none focus:border-gold"
           />
           <button
             type="submit"
-            className="rounded-lg border border-forge-700 px-3 py-2 text-sm transition hover:border-ember-600"
+            className="rounded-lg border border-line px-3 py-2 text-sm transition hover:border-gold"
           >
             + Module
           </button>
@@ -215,7 +216,7 @@ function ContentTree({ course }: { course: AdminCourseDetail }) {
       </div>
 
       {course.modules.length === 0 && (
-        <p className="rounded-2xl border border-forge-700 bg-forge-900 p-8 text-center text-sm text-forge-300">
+        <p className="rounded-card border border-line bg-surface p-8 text-center text-sm text-muted">
           Aucun module. Ajoutez-en un pour structurer la formation.
         </p>
       )}
@@ -237,14 +238,14 @@ function RowActions(props: {
 }) {
   return (
     <div className="flex shrink-0 items-center gap-1">
-      <button onClick={props.onUp} title="Monter" className="rounded px-2 py-1 text-forge-500 hover:bg-forge-700 hover:text-forge-100">↑</button>
-      <button onClick={props.onDown} title="Descendre" className="rounded px-2 py-1 text-forge-500 hover:bg-forge-700 hover:text-forge-100">↓</button>
+      <button onClick={props.onUp} title="Monter" className="rounded px-2 py-1 text-muted hover:bg-line hover:text-ink">↑</button>
+      <button onClick={props.onDown} title="Descendre" className="rounded px-2 py-1 text-muted hover:bg-line hover:text-ink">↓</button>
       <button
         onClick={() => {
           if (window.confirm(props.deleteLabel)) props.onDelete();
         }}
         title="Supprimer"
-        className="rounded px-2 py-1 text-forge-500 hover:bg-red-950 hover:text-red-300"
+        className="rounded px-2 py-1 text-muted hover:bg-danger/10 hover:text-danger"
       >
         ✕
       </button>
@@ -291,7 +292,7 @@ function EditableTitle({
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => setEditing(false)}
-        className="flex-1 rounded border border-ember-600 bg-forge-800 px-2 py-1 text-sm outline-none"
+        className="flex-1 rounded border border-gold bg-soft px-2 py-1 text-sm outline-none"
       />
     </form>
   );
@@ -302,7 +303,7 @@ function ModuleCard({ module, courseId }: { module: AdminModule; courseId: strin
   const [newChapterTitle, setNewChapterTitle] = useState('');
 
   return (
-    <div className="rounded-2xl border border-forge-700 bg-forge-900 p-5">
+    <div className="rounded-card border border-line bg-surface p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <EditableTitle
           value={module.title}
@@ -346,9 +347,9 @@ function ModuleCard({ module, courseId }: { module: AdminModule; courseId: strin
           value={newChapterTitle}
           onChange={(e) => setNewChapterTitle(e.target.value)}
           placeholder="Nouveau chapitre"
-          className="w-56 rounded-lg border border-forge-700 bg-forge-800 px-3 py-1.5 text-sm outline-none focus:border-ember-500"
+          className="w-56 rounded-lg border border-line bg-soft px-3 py-1.5 text-sm outline-none focus:border-gold"
         />
-        <button type="submit" className="rounded-lg border border-forge-700 px-3 py-1.5 text-xs transition hover:border-ember-600">
+        <button type="submit" className="rounded-lg border border-line px-3 py-1.5 text-xs transition hover:border-gold">
           + Chapitre
         </button>
       </form>
@@ -361,14 +362,14 @@ function ChapterBlock({ chapter, courseId }: { chapter: AdminChapter; courseId: 
   const [addingLesson, setAddingLesson] = useState(false);
 
   return (
-    <div className="rounded-xl border border-forge-800 bg-forge-950/60 p-4">
+    <div className="rounded-xl border border-line bg-soft p-4">
       <div className="mb-2 flex items-center justify-between gap-3">
         <EditableTitle
           value={chapter.title}
           onSave={(title) =>
             mutate.mutate({ path: `/admin/chapters/${chapter.id}`, method: 'PATCH', body: { title } })
           }
-          className="text-sm font-medium text-forge-300"
+          className="text-sm font-medium text-muted"
         />
         <RowActions
           onUp={() =>
@@ -400,7 +401,7 @@ function ChapterBlock({ chapter, courseId }: { chapter: AdminChapter; courseId: 
       ) : (
         <button
           onClick={() => setAddingLesson(true)}
-          className="mt-2 rounded-lg border border-forge-800 px-3 py-1.5 text-xs text-forge-300 transition hover:border-ember-600"
+          className="mt-2 rounded-lg border border-line px-3 py-1.5 text-xs text-muted transition hover:border-gold"
         >
           + Leçon
         </button>
@@ -435,17 +436,17 @@ function LessonRow({ lesson, courseId }: { lesson: AdminLesson; courseId: string
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-sm hover:bg-forge-800/60">
+    <div className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-sm hover:bg-soft">
       <button onClick={() => setEditing(true)} className="flex min-w-0 items-center gap-2 text-left" title="Modifier">
-        <span className="text-forge-500">{LESSON_TYPE_ICONS[lesson.type] ?? '·'}</span>
+        <span className="text-muted">{LESSON_TYPE_ICONS[lesson.type] ?? '·'}</span>
         <span className="truncate">{lesson.title}</span>
         {lesson.type === 'VIDEO' && !lesson.streamVideoId && (
-          <span className="shrink-0 rounded bg-red-950 px-1.5 py-0.5 text-[10px] text-red-300">
+          <span className="shrink-0 rounded bg-danger/10 px-1.5 py-0.5 text-[10px] text-danger">
             vidéo manquante
           </span>
         )}
         {lesson.isFreePreview && (
-          <span className="shrink-0 rounded bg-forge-700 px-1.5 py-0.5 text-[10px] text-forge-300">
+          <span className="shrink-0 rounded bg-line px-1.5 py-0.5 text-[10px] text-muted">
             aperçu gratuit
           </span>
         )}
@@ -496,19 +497,19 @@ function LessonForm({
           isFreePreview: form.isFreePreview,
         });
       }}
-      className="mt-2 grid gap-2 rounded-lg border border-ember-600/40 bg-forge-900 p-3 sm:grid-cols-2"
+      className="mt-2 grid gap-2 rounded-lg border border-gold/40 bg-surface p-3 sm:grid-cols-2"
     >
       <input
         autoFocus
         value={form.title}
         onChange={(e) => setForm({ ...form, title: e.target.value })}
         placeholder="Titre de la leçon"
-        className="rounded-lg border border-forge-700 bg-forge-800 px-3 py-1.5 text-sm outline-none focus:border-ember-500"
+        className="rounded-lg border border-line bg-soft px-3 py-1.5 text-sm outline-none focus:border-gold"
       />
       <select
         value={form.type}
         onChange={(e) => setForm({ ...form, type: e.target.value as typeof form.type })}
-        className="rounded-lg border border-forge-700 bg-forge-800 px-3 py-1.5 text-sm outline-none focus:border-ember-500"
+        className="rounded-lg border border-line bg-soft px-3 py-1.5 text-sm outline-none focus:border-gold"
       >
         <option value="VIDEO">Vidéo</option>
         <option value="TEXT">Texte</option>
@@ -521,26 +522,34 @@ function LessonForm({
             value={form.streamVideoId}
             onChange={(e) => setForm({ ...form, streamVideoId: e.target.value })}
             placeholder="ID vidéo Cloudflare Stream (ou téléversez ci-dessous)"
-            className="rounded-lg border border-forge-700 bg-forge-800 px-3 py-1.5 font-mono text-xs outline-none focus:border-ember-500"
+            className="rounded-lg border border-line bg-soft px-3 py-1.5 font-mono text-xs outline-none focus:border-gold"
           />
           <input
             value={form.durationSeconds}
             onChange={(e) => setForm({ ...form, durationSeconds: e.target.value.replace(/\D/g, '') })}
             placeholder="Durée (secondes)"
-            className="rounded-lg border border-forge-700 bg-forge-800 px-3 py-1.5 text-sm outline-none focus:border-ember-500"
+            className="rounded-lg border border-line bg-soft px-3 py-1.5 text-sm outline-none focus:border-gold"
           />
           {initial ? (
             <div className="sm:col-span-2">
               <VideoUploader lessonId={initial.id} courseId={courseId} />
             </div>
           ) : (
-            <p className="text-[11px] text-forge-500 sm:col-span-2">
+            <p className="text-[11px] text-muted sm:col-span-2">
               Créez d&apos;abord la leçon, puis rouvrez-la pour téléverser la vidéo.
             </p>
           )}
         </>
       )}
-      <label className="flex items-center gap-2 text-xs text-forge-300">
+      {form.type === 'QUIZ' &&
+        (initial ? (
+          <QuizEditor lessonId={initial.id} />
+        ) : (
+          <p className="text-[11px] text-muted sm:col-span-2">
+            Créez d&apos;abord la leçon, puis rouvrez-la pour rédiger les questions du quiz.
+          </p>
+        ))}
+      <label className="flex items-center gap-2 text-xs text-muted">
         <input
           type="checkbox"
           checked={form.isFreePreview}
@@ -549,10 +558,10 @@ function LessonForm({
         Aperçu gratuit (lisible sans achat)
       </label>
       <div className="flex justify-end gap-2 sm:col-span-2">
-        <button type="button" onClick={onCancel} className="rounded-lg border border-forge-700 px-3 py-1.5 text-xs transition hover:border-forge-500">
+        <button type="button" onClick={onCancel} className="rounded-lg border border-line px-3 py-1.5 text-xs transition hover:border-gold">
           Annuler
         </button>
-        <button type="submit" className="rounded-lg bg-ember-500 px-3 py-1.5 text-xs font-semibold text-forge-950 transition hover:bg-ember-400">
+        <button type="submit" className="rounded-lg bg-gold px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-gold-600">
           {initial ? 'Enregistrer' : 'Ajouter'}
         </button>
       </div>
