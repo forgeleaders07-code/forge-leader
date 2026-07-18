@@ -43,6 +43,14 @@ export function hasSession(): boolean {
   return typeof window !== 'undefined' && !!localStorage.getItem(REFRESH_KEY);
 }
 
+/** Token d'accès courant (connexion temps réel) — jamais persisté. */
+export function getAccessToken(): string | null {
+  return accessToken;
+}
+
+/** Origine de l'API sans le préfixe /api/v1 (connexion WebSocket). */
+export const API_ORIGIN = API_URL.replace(/\/api\/v1\/?$/, '');
+
 async function tryRefresh(): Promise<boolean> {
   // Une seule requête de refresh à la fois, partagée entre les appels concurrents
   refreshPromise ??= (async () => {

@@ -53,6 +53,7 @@ model User {
   reactions        Reaction[]
   conversations    ConversationParticipant[]
   messagesSent     Message[]         @relation("MessageAuthor")
+  notifications    Notification[]
 
   @@index([role, status])
   @@map("users")
@@ -275,6 +276,35 @@ model Reaction {
   // Une seule réaction par membre et par publication (changer = remplacer)
   @@unique([postId, userId])
   @@map("reactions")
+}
+
+// ─────────────────────────── Notifications ───────────────────────────
+
+enum NotificationType {
+  COMMENT // quelqu'un a commenté ma publication
+  REACTION // quelqu'un a réagi à ma publication
+  COURSE_ACCESS // un accès formation m'a été attribué
+  COURSE_PUBLISHED // une de mes formations a été publiée / mise à jour
+  MESSAGE // nouveau message privé
+  SYSTEM // annonce de la plateforme
+}
+
+model Notification {
+  id     String           @id @default(uuid())
+  userId String
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type   NotificationType
+  title  String
+  body   String           @default("")
+  /** Chemin interne vers la ressource concernée (ex. /communaute). */
+  link   String           @default("")
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("notifications")
 }
 
 // ─────────────────────────── Messagerie ───────────────────────────

@@ -6,9 +6,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CourseStatus, LessonType, UserRole } from '@prisma/client';
+import { CourseStatus, LessonType, NotificationType, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
+import { NotificationsService } from '../notifications/notifications.service';
 import { VIDEO_PROVIDER, VideoProvider } from '../video/video-provider.interface';
 import { CreateCourseDto, CreateLessonDto, UpdateCourseDto, UpdateLessonDto } from './dto/catalog.dto';
 
@@ -23,6 +24,7 @@ export class AdminCatalogService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(VIDEO_PROVIDER) private readonly video: VideoProvider,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ─────────────────────────── Formations ───────────────────────────
@@ -88,7 +90,7 @@ export class AdminCatalogService {
   }
 
   async updateCourse(user: AuthenticatedUser, courseId: string, dto: UpdateCourseDto) {
-    await this.getOwnedCourse(user, courseId);
+    const before = await this.getOwnedCourse(user, courseId);
 
     if (dto.status === CourseStatus.PUBLISHED) {
       await this.assertPublishable(courseId);
@@ -100,7 +102,25 @@ export class AdminCatalogService {
       if (clash) throw new ConflictException('Ce slug est déjà utilisé');
     }
 
-    return this.prisma.course.update({ where: { id: courseId }, data: dto });
+    const updated = await this.prisma.course.update({ where: { id: courseId }, data: dto });
+
+    // Passage en ligne → prévenir les inscrits (Vol 2 §26 « nouvelle vidéo »)
+    if (dto.status === CourseStatus.PUBLISHED && before.status !== CourseStatus.PUBLISHED) {
+      const enrollees = await this.prisma.enrollment.findMany({
+        where: { courseId, revokedAt: null },
+        select: { userId: true },
+      });
+      await this.notifications.notifyMany(
+        enrollees.map((e) => e.userId),
+        {
+          type: NotificationType.COURSE_PUBLISHED,
+          title: `Formation disponible : ${updated.title}`,
+          link: `/formation/${updated.slug}`,
+        },
+      );
+    }
+
+    return updated;
   }
 
   /** Archivage (jamais de suppression physique : les enrollments font foi). */

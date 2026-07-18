@@ -15,6 +15,7 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { CommunityModule } from './modules/community/community.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { MailModule } from './modules/mail/mail.module';
 import { VideoModule } from './modules/video/video.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -27,6 +28,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PrismaModule,
     MailModule,
+    NotificationsModule,
     AuthModule,
     UsersModule,
     CoursesModule,

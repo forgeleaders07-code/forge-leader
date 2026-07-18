@@ -6,7 +6,9 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api, AuthUser, clearSession, hasSession, logout } from '@/lib/api';
+import { useRealtime } from '@/lib/use-realtime';
 import { Avatar } from '@/components/ui/avatar';
+import { NotificationsBell } from '@/components/notifications-bell';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 interface NavLink {
@@ -39,6 +41,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     enabled: ready,
     refetchInterval: 30_000,
   });
+
+  // Connexion temps réel (notifications + messages) dès que la session est valide
+  useRealtime(!!me);
 
   useEffect(() => {
     if (!hasSession() || isError) {
@@ -129,6 +134,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
             <div className="hidden md:block" />
             <div className="flex items-center gap-3">
+              <NotificationsBell />
               <ThemeToggle />
               {me && (
                 <div className="flex items-center gap-2">

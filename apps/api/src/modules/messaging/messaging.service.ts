@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { UserStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RealtimeGateway } from '../notifications/realtime.gateway';
 
 const CONTACT_SELECT = {
   id: true,
@@ -23,7 +24,10 @@ const CONTACT_SELECT = {
  */
 @Injectable()
 export class MessagingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: RealtimeGateway,
+  ) {}
 
   // ─────────────────────────── Annuaire ───────────────────────────
 
@@ -169,6 +173,20 @@ export class MessagingService {
         data: { lastReadAt: new Date() },
       }),
     ]);
+
+    // Livraison instantanée aux autres participants connectés
+    const others = await this.prisma.conversationParticipant.findMany({
+      where: { conversationId, userId: { not: userId } },
+      select: { userId: true },
+    });
+    for (const other of others) {
+      this.realtime.emitToUser(other.userId, 'message', {
+        conversationId,
+        from: `${message.author.firstName} ${message.author.lastName}`.trim(),
+        preview: message.content.slice(0, 80),
+      });
+    }
+
     return message;
   }
 

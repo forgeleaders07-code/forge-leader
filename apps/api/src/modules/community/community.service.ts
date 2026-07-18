@@ -1,7 +1,15 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { ReactionType, UserRole } from '@prisma/client';
+import { NotificationType, ReactionType, UserRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
+import { NotificationsService } from '../notifications/notifications.service';
+
+const REACTION_LABELS: Record<ReactionType, string> = {
+  LIKE: 'aimé',
+  LOVE: 'adoré',
+  CLAP: 'applaudi',
+  INSIGHT: 'trouvé éclairante',
+};
 
 const AUTHOR_SELECT = {
   id: true,
@@ -18,7 +26,10 @@ const AUTHOR_SELECT = {
  */
 @Injectable()
 export class CommunityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   // ─────────────────────────── Fil ───────────────────────────
 
@@ -74,11 +85,21 @@ export class CommunityService {
   }
 
   async createComment(userId: string, postId: string, content: string) {
-    await this.getPostOrThrow(postId);
-    return this.prisma.comment.create({
+    const post = await this.getPostOrThrow(postId);
+    const comment = await this.prisma.comment.create({
       data: { postId, authorId: userId, content: content.trim() },
       include: { author: { select: AUTHOR_SELECT } },
     });
+
+    if (post.authorId !== userId) {
+      await this.notifications.notify(post.authorId, {
+        type: NotificationType.COMMENT,
+        title: `${comment.author.firstName} ${comment.author.lastName} a commenté votre publication`,
+        body: comment.content.slice(0, 120),
+        link: '/communaute',
+      });
+    }
+    return comment;
   }
 
   async deleteComment(user: AuthenticatedUser, commentId: string): Promise<void> {
@@ -92,7 +113,7 @@ export class CommunityService {
 
   /** Pose ou remplace ma réaction ; re-cliquer le même type la retire. */
   async react(userId: string, postId: string, type: ReactionType) {
-    await this.getPostOrThrow(postId);
+    const post = await this.getPostOrThrow(postId);
 
     const existing = await this.prisma.reaction.findUnique({
       where: { postId_userId: { postId, userId } },
@@ -108,6 +129,19 @@ export class CommunityService {
       create: { postId, userId, type },
       update: { type },
     });
+
+    // Nouvelle réaction (pas un simple changement) → notifier l'auteur
+    if (!existing && post.authorId !== userId) {
+      const reactor = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { firstName: true, lastName: true },
+      });
+      await this.notifications.notify(post.authorId, {
+        type: NotificationType.REACTION,
+        title: `${reactor?.firstName ?? 'Un membre'} ${reactor?.lastName ?? ''} a ${REACTION_LABELS[type]} votre publication`.trim(),
+        link: '/communaute',
+      });
+    }
     return { myReaction: type };
   }
 
