@@ -15,6 +15,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user';
 import { AdminCatalogService } from './admin-catalog.service';
+import { AdminStatsService } from './admin-stats.service';
 import {
   CreateCourseDto,
   CreateLessonDto,
@@ -33,7 +34,16 @@ import {
 @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
 @Controller('admin')
 export class AdminCatalogController {
-  constructor(private readonly catalog: AdminCatalogService) {}
+  constructor(
+    private readonly catalog: AdminCatalogService,
+    private readonly stats: AdminStatsService,
+  ) {}
+
+  /** Tableau de bord formateur/admin (Vol 2 §14-15). */
+  @Get('stats')
+  getStats(@CurrentUser() user: AuthenticatedUser) {
+    return this.stats.getStats(user);
+  }
 
   // ─── Formations ───
   @Get('courses')

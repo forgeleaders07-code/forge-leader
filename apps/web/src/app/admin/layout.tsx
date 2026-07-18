@@ -40,6 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const links = [
+    { href: '/admin', label: 'Tableau de bord' },
     { href: '/admin/formations', label: 'Formations' },
     ...(me.role === 'ADMIN' ? [{ href: '/admin/acces', label: 'Accès & membres' }] : []),
   ];
@@ -58,7 +59,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   key={l.href}
                   href={l.href}
                   className={`rounded-lg px-3 py-1.5 text-sm transition ${
-                    pathname.startsWith(l.href)
+                    (l.href === '/admin' ? pathname === '/admin' : pathname.startsWith(l.href))
                       ? 'bg-line text-ink'
                       : 'text-muted hover:bg-soft'
                   }`}
