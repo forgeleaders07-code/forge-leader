@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-forge-950 text-forge-100 antialiased;
+}
+
+/* Dissuasion basique de la sélection/copie sur les zones de contenu protégé */
+.protected-content {
+  user-select: none;
+  -webkit-user-select: none;
+}

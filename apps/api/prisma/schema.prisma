@@ -1,0 +1,237 @@
+// La Forge des Leaders LMS — schéma de données v1 (socle)
+// Domaines : identité, catalogue, accès, progression, webhooks.
+// Conçu pour PostgreSQL. Les évolutions passent par des migrations Prisma.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Endpoint direct (sans pooler) : requis par Neon pour les migrations
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────── Identité ───────────────────────────
+
+enum UserRole {
+  LEARNER
+  INSTRUCTOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_ACTIVATION // compte créé par webhook, mot de passe pas encore défini
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String? // null tant que le compte provisionné n'est pas activé
+  firstName    String
+  lastName     String
+  role         UserRole   @default(LEARNER)
+  status       UserStatus @default(PENDING_ACTIVATION)
+  avatarUrl    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLoginAt DateTime?
+
+  refreshTokens    RefreshToken[]
+  enrollments      Enrollment[]
+  lessonProgress   LessonProgress[]
+  activationTokens ActivationToken[]
+  coursesCreated   Course[]          @relation("CourseInstructor")
+
+  @@index([role, status])
+  @@map("users")
+}
+
+// Rotation des refresh tokens : chaque token n'est valable qu'une fois ;
+// la réutilisation d'un token révoqué invalide toute la famille (vol détecté).
+model RefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique // on ne stocke jamais le token en clair
+  familyId  String // famille de rotation
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  userAgent String?
+  ipAddress String?
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+// Lien d'activation envoyé par email après provisioning webhook.
+model ActivationToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("activation_tokens")
+}
+
+// ─────────────────────────── Catalogue ───────────────────────────
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Course {
+  id          String       @id @default(uuid())
+  slug        String       @unique
+  title       String
+  description String       @default("")
+  coverUrl    String?
+  status      CourseStatus @default(DRAFT)
+  instructorId String?
+  instructor   User?       @relation("CourseInstructor", fields: [instructorId], references: [id], onDelete: SetNull)
+
+  // Identifiant produit côté Systeme.io pour le mapping webhook → formation
+  externalProductIds String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  modules     CourseModule[]
+  enrollments Enrollment[]
+
+  @@index([status])
+  @@map("courses")
+}
+
+model CourseModule {
+  id       String @id @default(uuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title    String
+  position Int
+
+  chapters Chapter[]
+
+  @@unique([courseId, position])
+  @@map("course_modules")
+}
+
+model Chapter {
+  id       String       @id @default(uuid())
+  moduleId String
+  module   CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title    String
+  position Int
+
+  lessons Lesson[]
+
+  @@unique([moduleId, position])
+  @@map("chapters")
+}
+
+enum LessonType {
+  VIDEO
+  TEXT
+  QUIZ
+  RESOURCE
+}
+
+model Lesson {
+  id        String     @id @default(uuid())
+  chapterId String
+  chapter   Chapter    @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  title     String
+  type      LessonType @default(VIDEO)
+  position  Int
+
+  // Cloudflare Stream : identifiant de la vidéo (jamais d'URL publique en base).
+  // La lecture passe toujours par un token signé délivré après contrôle d'accès.
+  streamVideoId   String?
+  durationSeconds Int?
+  content         String? @default("") // corps pour TEXT, JSON pour QUIZ
+  isFreePreview   Boolean @default(false)
+
+  progress LessonProgress[]
+
+  @@unique([chapterId, position])
+  @@map("lessons")
+}
+
+// ─────────────────────────── Accès & progression ───────────────────────────
+
+enum EnrollmentSource {
+  SYSTEME_IO_WEBHOOK
+  MANUAL_ADMIN
+}
+
+model Enrollment {
+  id       String           @id @default(uuid())
+  userId   String
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  source   EnrollmentSource
+  // Accès révocable (remboursement, litige) sans suppression de l'historique
+  revokedAt DateTime?
+  expiresAt DateTime? // null = accès à vie
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id       String @id @default(uuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  // Reprise automatique de lecture
+  lastPositionSeconds Int       @default(0)
+  completedAt         DateTime?
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@map("lesson_progress")
+}
+
+// ─────────────────────────── Webhooks (idempotence) ───────────────────────────
+
+enum WebhookStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+  IGNORED // événement non pertinent ou produit inconnu
+}
+
+model WebhookEvent {
+  id         String        @id @default(uuid())
+  provider   String        @default("systeme.io")
+  // Clé d'idempotence : identifiant unique de l'événement chez le provider
+  externalId String
+  eventType  String
+  payload    Json
+  status     WebhookStatus @default(RECEIVED)
+  error      String?
+  receivedAt DateTime      @default(now())
+  processedAt DateTime?
+
+  @@unique([provider, externalId])
+  @@index([status])
+  @@map("webhook_events")
+}
