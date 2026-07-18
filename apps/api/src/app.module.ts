@@ -10,6 +10,8 @@ import { CoursesModule } from './modules/courses/courses.module';
 import { EnrollmentsModule } from './modules/enrollments/enrollments.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { QuizModule } from './modules/quiz/quiz.module';
+import { CertificatesModule } from './modules/certificates/certificates.module';
 import { MailModule } from './modules/mail/mail.module';
 import { VideoModule } from './modules/video/video.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -29,6 +31,8 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
     VideoModule,
     WebhooksModule,
     AdminModule,
+    QuizModule,
+    CertificatesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
