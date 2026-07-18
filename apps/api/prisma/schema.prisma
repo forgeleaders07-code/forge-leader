@@ -48,6 +48,9 @@ model User {
   coursesCreated   Course[]          @relation("CourseInstructor")
   quizAttempts     QuizAttempt[]
   certificates     Certificate[]
+  posts            Post[]            @relation("PostAuthor")
+  comments         Comment[]         @relation("CommentAuthor")
+  reactions        Reaction[]
 
   @@index([role, status])
   @@map("users")
@@ -216,6 +219,60 @@ model QuizAttempt {
 
   @@index([userId, lessonId])
   @@map("quiz_attempts")
+}
+
+// ─────────────────────────── Communauté ───────────────────────────
+
+model Post {
+  id       String @id @default(uuid())
+  authorId String
+  author   User   @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  content  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments  Comment[]
+  reactions Reaction[]
+
+  @@index([createdAt])
+  @@map("posts")
+}
+
+model Comment {
+  id       String @id @default(uuid())
+  postId   String
+  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User   @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  content  String
+
+  createdAt DateTime @default(now())
+
+  @@index([postId, createdAt])
+  @@map("comments")
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  CLAP
+  INSIGHT
+}
+
+model Reaction {
+  id     String       @id @default(uuid())
+  postId String
+  post   Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type   ReactionType
+
+  createdAt DateTime @default(now())
+
+  // Une seule réaction par membre et par publication (changer = remplacer)
+  @@unique([postId, userId])
+  @@map("reactions")
 }
 
 // ─────────────────────────── Certificats ───────────────────────────

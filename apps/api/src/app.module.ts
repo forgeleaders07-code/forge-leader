@@ -13,6 +13,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { QuizModule } from './modules/quiz/quiz.module';
 import { CertificatesModule } from './modules/certificates/certificates.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { CommunityModule } from './modules/community/community.module';
 import { MailModule } from './modules/mail/mail.module';
 import { VideoModule } from './modules/video/video.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -35,6 +36,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
     QuizModule,
     CertificatesModule,
     DashboardModule,
+    CommunityModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

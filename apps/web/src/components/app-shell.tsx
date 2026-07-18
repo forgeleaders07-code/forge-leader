@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Award, GraduationCap, LayoutDashboard, LogOut, ShieldCheck } from 'lucide-react';
+import { Award, GraduationCap, LayoutDashboard, LogOut, ShieldCheck, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -57,6 +57,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const links: NavLink[] = [
     { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
+    { href: '/communaute', label: 'Communauté', icon: Users },
     { href: '/certificats', label: 'Mes certificats', icon: Award },
     ...(me && me.role !== 'LEARNER'
       ? [{ href: '/admin/formations', label: 'Administration', icon: ShieldCheck }]
