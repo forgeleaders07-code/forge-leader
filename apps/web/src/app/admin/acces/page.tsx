@@ -18,6 +18,8 @@ export default function AdminAccessPage() {
 function GrantAccessSection() {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [courseId, setCourseId] = useState('');
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
@@ -34,15 +36,30 @@ function GrantAccessSection() {
 
   const grant = useMutation({
     mutationFn: () =>
-      api<{ wasNew: boolean }>('/admin/enrollments/grant', {
-        method: 'POST',
-        body: JSON.stringify({ email: email.trim().toLowerCase(), courseId }),
-      }),
+      api<{ wasNew: boolean; emailSent: 'activation' | 'course-added' | 'none' }>(
+        '/admin/enrollments/grant',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            firstName: firstName.trim() || undefined,
+            lastName: lastName.trim() || undefined,
+            courseId,
+          }),
+        },
+      ),
     onSuccess: (r) => {
-      setMessage({
-        kind: 'ok',
-        text: r.wasNew ? 'Accès attribué.' : 'Cet utilisateur avait déjà un accès actif.',
-      });
+      const text = !r.wasNew
+        ? 'Cet utilisateur avait déjà un accès actif.'
+        : r.emailSent === 'activation'
+          ? "Accès attribué — email d'activation envoyé pour définir le mot de passe."
+          : r.emailSent === 'course-added'
+            ? 'Accès attribué — email de notification envoyé au membre.'
+            : 'Accès attribué.';
+      setMessage({ kind: 'ok', text });
+      setEmail('');
+      setFirstName('');
+      setLastName('');
       void queryClient.invalidateQueries({ queryKey: ['admin-enrollments', courseId] });
       void queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     },
@@ -84,7 +101,25 @@ function GrantAccessSection() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="apprenant@exemple.com"
-            className="w-72 rounded-lg border border-line bg-soft px-3 py-2 outline-none focus:border-gold"
+            className="w-64 rounded-lg border border-line bg-soft px-3 py-2 outline-none focus:border-gold"
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-muted">Prénom</span>
+          <input
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="Facultatif"
+            className="w-36 rounded-lg border border-line bg-soft px-3 py-2 outline-none focus:border-gold"
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-muted">Nom</span>
+          <input
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Facultatif"
+            className="w-36 rounded-lg border border-line bg-soft px-3 py-2 outline-none focus:border-gold"
           />
         </label>
         <label className="block text-sm">
