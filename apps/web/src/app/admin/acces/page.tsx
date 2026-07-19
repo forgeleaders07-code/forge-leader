@@ -15,6 +15,13 @@ export default function AdminAccessPage() {
   );
 }
 
+interface GrantResult {
+  wasNew: boolean;
+  needsActivation: boolean;
+  activationLink: string | null;
+  emailStatus: 'sent' | 'failed' | 'skipped';
+}
+
 function GrantAccessSection() {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
@@ -22,6 +29,8 @@ function GrantAccessSection() {
   const [lastName, setLastName] = useState('');
   const [courseId, setCourseId] = useState('');
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const [activationLink, setActivationLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const { data: courses } = useQuery({
     queryKey: ['admin-courses'],
@@ -36,26 +45,33 @@ function GrantAccessSection() {
 
   const grant = useMutation({
     mutationFn: () =>
-      api<{ wasNew: boolean; emailSent: 'activation' | 'course-added' | 'none' }>(
-        '/admin/enrollments/grant',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            email: email.trim().toLowerCase(),
-            firstName: firstName.trim() || undefined,
-            lastName: lastName.trim() || undefined,
-            courseId,
-          }),
-        },
-      ),
+      api<GrantResult>('/admin/enrollments/grant', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          firstName: firstName.trim() || undefined,
+          lastName: lastName.trim() || undefined,
+          courseId,
+        }),
+      }),
     onSuccess: (r) => {
-      const text = !r.wasNew
-        ? 'Cet utilisateur avait déjà un accès actif.'
-        : r.emailSent === 'activation'
-          ? "Accès attribué — email d'activation envoyé pour définir le mot de passe."
-          : r.emailSent === 'course-added'
+      setCopied(false);
+      setActivationLink(r.activationLink);
+
+      let text: string;
+      if (!r.wasNew && !r.needsActivation) {
+        text = 'Cet utilisateur avait déjà un accès actif.';
+      } else if (r.needsActivation) {
+        text =
+          r.emailStatus === 'sent'
+            ? "Accès attribué — email d'activation envoyé. Vous pouvez aussi copier le lien ci-dessous."
+            : "Accès attribué. Copiez le lien d'activation ci-dessous et envoyez-le au membre (WhatsApp, SMS…).";
+      } else {
+        text =
+          r.emailStatus === 'sent'
             ? 'Accès attribué — email de notification envoyé au membre.'
-            : 'Accès attribué.';
+            : 'Accès attribué. Le membre peut se connecter avec son mot de passe habituel.';
+      }
       setMessage({ kind: 'ok', text });
       setEmail('');
       setFirstName('');
@@ -63,9 +79,22 @@ function GrantAccessSection() {
       void queryClient.invalidateQueries({ queryKey: ['admin-enrollments', courseId] });
       void queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     },
-    onError: (e) =>
-      setMessage({ kind: 'error', text: e instanceof ApiError ? e.message : 'Erreur inattendue' }),
+    onError: (e) => {
+      setActivationLink(null);
+      setMessage({ kind: 'error', text: e instanceof ApiError ? e.message : 'Erreur inattendue' });
+    },
   });
+
+  async function copyLink() {
+    if (!activationLink) return;
+    try {
+      await navigator.clipboard.writeText(activationLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // clipboard indisponible : l'admin peut sélectionner le lien manuellement
+    }
+  }
 
   const revoke = useMutation({
     mutationFn: (targetEmail: string) =>
@@ -154,6 +183,44 @@ function GrantAccessSection() {
           </span>
         )}
       </form>
+
+      {/* Lien d'activation à transmettre au membre (WhatsApp, SMS…) */}
+      {activationLink && (
+        <div className="mt-5 rounded-lg border border-gold bg-gold-soft p-4">
+          <p className="mb-2 text-sm font-semibold text-gold">
+            🔑 Lien d&apos;activation — à envoyer au membre
+          </p>
+          <p className="mb-3 text-xs text-muted">
+            Le membre ouvre ce lien pour choisir son mot de passe et accéder à sa formation. Valable
+            7 jours. Envoyez-le par WhatsApp, SMS ou tout autre canal.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              readOnly
+              value={activationLink}
+              onFocus={(e) => e.currentTarget.select()}
+              className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2 font-mono text-xs outline-none"
+            />
+            <button
+              type="button"
+              onClick={copyLink}
+              className="shrink-0 rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-white transition hover:bg-gold-600"
+            >
+              {copied ? '✓ Copié' : 'Copier'}
+            </button>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(
+                `Bienvenue à La Forge des Leaders ! Activez votre compte et accédez à votre formation ici : ${activationLink}`,
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 rounded-lg border border-line px-4 py-2 text-sm font-medium text-muted transition hover:border-gold hover:text-ink"
+            >
+              Partager sur WhatsApp
+            </a>
+          </div>
+        </div>
+      )}
 
       {courseId && (
         <div className="mt-6">

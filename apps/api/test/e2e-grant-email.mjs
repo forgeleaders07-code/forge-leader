@@ -1,6 +1,8 @@
 /**
- * Vérifie que l'attribution manuelle d'accès envoie l'email d'activation
- * pour un nouveau compte (correctif du 2026-07-19).
+ * Vérifie l'attribution manuelle d'accès (correctifs 2026-07-19) :
+ * - renvoie un lien d'activation copiable pour les comptes sans mot de passe ;
+ * - l'envoi d'email est NON bloquant (l'attribution réussit même si Resend
+ *   refuse d'envoyer à une adresse non vérifiée).
  */
 
 const API = 'http://localhost:3001/api/v1';
@@ -29,37 +31,54 @@ const admin = (await req('/auth/login', {
 })).json?.accessToken;
 check('admin connecté', !!admin);
 
-const course = (await req('/admin/courses', { token: admin })).json.find((c) => c.status === 'PUBLISHED')
-  ?? (await req('/admin/courses', { token: admin })).json[0];
+const courses = (await req('/admin/courses', { token: admin })).json;
+const course = courses.find((c) => c.status === 'PUBLISHED') ?? courses[0];
 
-const email = `nouveau-${Date.now()}@laforgedesleaders.test`;
-
-console.log('— Nouveau membre : email d\'activation attendu');
+console.log('— Nouveau membre (email non vérifié chez Resend)');
+const email = `membre-${Date.now()}@exemple-test.com`;
 const grant = await req('/admin/enrollments/grant', {
   method: 'POST',
   token: admin,
   body: { email, firstName: 'Nouveau', lastName: 'Membre', courseId: course.id },
 });
-check('attribution réussie', grant.status === 201);
-check('email d\'activation envoyé', grant.json?.emailSent === 'activation', `(${grant.json?.emailSent})`);
+check("attribution réussie MALGRÉ l'échec d'envoi email", grant.status === 201, `(statut ${grant.status})`);
+check('needsActivation = true', grant.json?.needsActivation === true);
+check('lien d\'activation renvoyé', typeof grant.json?.activationLink === 'string' && grant.json.activationLink.includes('/activation?userId='));
+check(
+  'envoi email marqué failed (Resend mode test) ou sent',
+  grant.json?.emailStatus === 'failed' || grant.json?.emailStatus === 'sent',
+  `(${grant.json?.emailStatus})`,
+);
 
-// Le compte doit être PENDING_ACTIVATION avec un token d'activation valide
-const users = await req(`/admin/users?query=${encodeURIComponent('Nouveau')}`, { token: admin });
-const created = users.json?.find((u) => u.email === email);
-check('compte créé en attente d\'activation', created?.status === 'PENDING_ACTIVATION');
+console.log('— Le lien d\'activation permet réellement de se connecter');
+const url = new URL(grant.json.activationLink);
+const userId = url.searchParams.get('userId');
+const token = url.searchParams.get('token');
+const activate = await req('/auth/activate', {
+  method: 'POST',
+  body: { userId, token, password: 'MonMotDePasse123' },
+});
+check('activation via le lien réussit', activate.status === 200 && !!activate.json?.accessToken);
 
-console.log('— Nouvel accès sur compte existant : email de notification');
-const second = await req('/admin/courses', { token: admin });
-const otherCourse = second.json.find((c) => c.id !== course.id && (c.status === 'PUBLISHED' || c.status === 'DRAFT'));
+const login = await req('/auth/login', {
+  method: 'POST',
+  body: { email, password: 'MonMotDePasse123' },
+});
+check('le membre peut ensuite se connecter', login.status === 200 && !!login.json?.accessToken);
+
+console.log('— 2e formation sur un compte désormais actif : pas de lien');
+const otherCourse = courses.find((c) => c.id !== course.id);
 if (otherCourse) {
   const grant2 = await req('/admin/enrollments/grant', {
     method: 'POST',
     token: admin,
     body: { email, courseId: otherCourse.id },
   });
-  check('2e accès → email course-added', grant2.json?.emailSent === 'course-added', `(${grant2.json?.emailSent})`);
+  check('compte actif → pas de lien d\'activation', grant2.json?.activationLink === null);
+  check('compte actif → needsActivation false', grant2.json?.needsActivation === false);
 } else {
-  check('2e accès (ignoré : pas d\'autre formation)', true);
+  check('2e formation (ignoré : une seule formation)', true);
+  check('2e formation (ignoré)', true);
 }
 
 console.log(`\nRésultat : ${passed} OK, ${failed} KO`);

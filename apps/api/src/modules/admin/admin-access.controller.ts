@@ -2,12 +2,14 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   NotFoundException,
   Param,
   Post,
   Query,
 } from '@nestjs/common';
-import { EnrollmentSource, UserRole } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { EnrollmentSource, UserRole, UserStatus } from '@prisma/client';
 import { IsEmail, IsOptional, IsString, MaxLength, IsUUID } from 'class-validator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -51,12 +53,15 @@ class RevokeAccessDto {
 @Roles(UserRole.ADMIN)
 @Controller('admin')
 export class AdminAccessController {
+  private readonly logger = new Logger(AdminAccessController.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly users: UsersService,
     private readonly enrollments: EnrollmentsService,
     private readonly auth: AuthService,
     private readonly mail: MailService,
+    private readonly config: ConfigService,
   ) {}
 
   /** Recherche d'utilisateurs (email ou nom, insensible à la casse). */
@@ -102,17 +107,22 @@ export class AdminAccessController {
   }
 
   /**
-   * Attribution manuelle : même parcours qu'un achat webhook.
-   * - Compte nouvellement créé → email d'activation (le membre définit son
-   *   mot de passe, sans quoi il ne pourrait jamais se connecter).
-   * - Compte existant recevant un nouvel accès → email « formation débloquée ».
+   * Attribution manuelle (ventes WhatsApp / Mobile Money).
+   *
+   * Renvoie un `activationLink` copiable quand le compte n'a pas encore de
+   * mot de passe : l'admin le transmet au membre (WhatsApp, SMS…) — c'est le
+   * canal fiable, indépendant de l'email.
+   *
+   * L'email est envoyé « en plus » mais reste NON bloquant : un échec d'envoi
+   * (Resend en mode test, domaine non vérifié, quota…) ne doit jamais faire
+   * échouer l'attribution d'accès.
    */
   @Post('enrollments/grant')
   async grant(@Body() dto: GrantAccessDto) {
     const course = await this.prisma.course.findUnique({ where: { id: dto.courseId } });
     if (!course) throw new NotFoundException('Formation introuvable');
 
-    const { user, created } = await this.users.findOrCreateProvisioned({
+    const { user } = await this.users.findOrCreateProvisioned({
       email: dto.email,
       firstName: dto.firstName?.trim() || 'Apprenant',
       lastName: dto.lastName?.trim() || '',
@@ -124,27 +134,51 @@ export class AdminAccessController {
       EnrollmentSource.MANUAL_ADMIN,
     );
 
-    let emailSent: 'activation' | 'course-added' | 'none' = 'none';
-    if (created) {
-      const activationToken = await this.auth.createActivationToken(user.id);
-      await this.mail.sendWelcomeEmail({
-        to: user.email,
-        firstName: user.firstName,
-        courseTitle: course.title,
-        userId: user.id,
-        activationToken,
-      });
-      emailSent = 'activation';
+    // Compte sans mot de passe → il faut un lien d'activation (nouveau compte,
+    // ou compte provisionné qui n'a jamais été activé).
+    const needsActivation = user.status === UserStatus.PENDING_ACTIVATION;
+
+    let activationLink: string | null = null;
+    let emailStatus: 'sent' | 'failed' | 'skipped' = 'skipped';
+
+    if (needsActivation) {
+      const token = await this.auth.createActivationToken(user.id);
+      const frontend = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
+      activationLink = `${frontend}/activation?userId=${encodeURIComponent(
+        user.id,
+      )}&token=${encodeURIComponent(token)}`;
+      emailStatus = await this.trySend(() =>
+        this.mail.sendWelcomeEmail({
+          to: user.email,
+          firstName: user.firstName,
+          courseTitle: course.title,
+          userId: user.id,
+          activationToken: token,
+        }),
+      );
     } else if (wasNew) {
-      await this.mail.sendCourseAddedEmail({
-        to: user.email,
-        firstName: user.firstName,
-        courseTitle: course.title,
-      });
-      emailSent = 'course-added';
+      // Compte déjà actif recevant une nouvelle formation : simple notification.
+      emailStatus = await this.trySend(() =>
+        this.mail.sendCourseAddedEmail({
+          to: user.email,
+          firstName: user.firstName,
+          courseTitle: course.title,
+        }),
+      );
     }
 
-    return { enrollment, wasNew, userId: user.id, emailSent };
+    return { enrollment, wasNew, userId: user.id, needsActivation, activationLink, emailStatus };
+  }
+
+  /** Envoi best-effort : journalise l'échec sans le propager. */
+  private async trySend(send: () => Promise<void>): Promise<'sent' | 'failed'> {
+    try {
+      await send();
+      return 'sent';
+    } catch (e) {
+      this.logger.warn(`Envoi d'email échoué (non bloquant) : ${e instanceof Error ? e.message : e}`);
+      return 'failed';
+    }
   }
 
   @Post('enrollments/revoke')
