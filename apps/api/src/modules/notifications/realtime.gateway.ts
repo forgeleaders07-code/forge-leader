@@ -7,6 +7,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
+import { allowedOrigins } from '../../config/cors';
 import type { AccessTokenPayload } from '../auth/types/authenticated-user';
 
 /**
@@ -17,7 +18,7 @@ import type { AccessTokenPayload } from '../auth/types/authenticated-user';
  */
 @WebSocketGateway({
   namespace: '/realtime',
-  cors: { origin: process.env.FRONTEND_URL ?? 'http://localhost:3000', credentials: true },
+  cors: { origin: allowedOrigins(), credentials: true },
 })
 export class RealtimeGateway implements OnGatewayConnection {
   private readonly logger = new Logger(RealtimeGateway.name);
