@@ -46,5 +46,7 @@ export interface PlaybackGrant {
   token: string;
   hlsUrl: string;
   iframeUrl: string;
+  /** URL mp4 présignée (R2) lue en <video> natif ; absente pour Cloudflare Stream. */
+  url?: string;
   expiresAt: number;
 }

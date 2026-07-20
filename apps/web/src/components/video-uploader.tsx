@@ -60,14 +60,19 @@ export function VideoUploader({ lessonId, courseId }: { lessonId: string; course
 
     setState({ step: 'preparing' });
     try {
-      const { uploadUrl } = await api<{ uploadUrl: string; videoId: string }>(
-        `/admin/lessons/${lessonId}/video-upload`,
-        { method: 'POST' },
-      );
+      const { uploadUrl, uploadMethod } = await api<{
+        uploadUrl: string;
+        videoId: string;
+        uploadMethod?: 'POST' | 'PUT';
+      }>(`/admin/lessons/${lessonId}/video-upload`, { method: 'POST' });
+
+      // PUT présigné (R2/S3) : corps brut du fichier. POST (Cloudflare/Dev) :
+      // envoi multipart classique.
+      const method = uploadMethod ?? 'POST';
 
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', uploadUrl);
+        xhr.open(method, uploadUrl);
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
             setState({ step: 'uploading', percent: Math.round((e.loaded / e.total) * 100) });
@@ -78,9 +83,16 @@ export function VideoUploader({ lessonId, courseId }: { lessonId: string; course
             ? resolve()
             : reject(new Error(`Téléversement refusé (HTTP ${xhr.status})`));
         xhr.onerror = () => reject(new Error('Erreur réseau pendant le téléversement'));
-        const form = new FormData();
-        form.append('file', file);
-        xhr.send(form);
+
+        if (method === 'PUT') {
+          // Doit correspondre au Content-Type signé côté serveur (video/mp4).
+          xhr.setRequestHeader('Content-Type', 'video/mp4');
+          xhr.send(file);
+        } else {
+          const form = new FormData();
+          form.append('file', file);
+          xhr.send(form);
+        }
       });
 
       setState({ step: 'processing' });

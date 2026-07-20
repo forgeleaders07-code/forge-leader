@@ -53,6 +53,23 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   CLOUDFLARE_STREAM_SIGNING_KEY_PEM?: string;
+
+  // ── Cloudflare R2 (hébergement vidéo compatible S3) ──
+  @IsString()
+  @IsOptional()
+  R2_ACCOUNT_ID?: string;
+
+  @IsString()
+  @IsOptional()
+  R2_ACCESS_KEY_ID?: string;
+
+  @IsString()
+  @IsOptional()
+  R2_SECRET_ACCESS_KEY?: string;
+
+  @IsString()
+  @IsOptional()
+  R2_BUCKET?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>): EnvironmentVariables {

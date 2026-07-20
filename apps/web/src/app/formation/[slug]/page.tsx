@@ -102,6 +102,20 @@ export default function FormationPage() {
                 <div className="flex aspect-video items-center justify-center text-muted">
                   Préparation de la lecture sécurisée…
                 </div>
+              ) : playback?.url ? (
+                // Lecteur natif sécurisé : mp4 servi via URL présignée R2 à
+                // durée courte (renouvelée avant expiration par le refetch).
+                <video
+                  key={playback.url}
+                  src={playback.url}
+                  className="aspect-video w-full bg-black"
+                  controls
+                  controlsList="nodownload"
+                  onContextMenu={(e) => e.preventDefault()}
+                  playsInline
+                >
+                  <track kind="captions" />
+                </video>
               ) : playback ? (
                 <iframe
                   key={playback.token}

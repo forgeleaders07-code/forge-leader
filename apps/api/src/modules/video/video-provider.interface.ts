@@ -12,6 +12,12 @@ export interface PlaybackGrant {
   hlsUrl: string;
   /** URL de l'iframe du player Cloudflare (alternative simple côté front). */
   iframeUrl: string;
+  /**
+   * URL mp4 présignée à durée courte, lue en HTML5 natif (<video>).
+   * Renseignée par les providers « fichier » (R2). Absente pour Cloudflare
+   * Stream, qui expose HLS + iframe. Le front la privilégie quand elle existe.
+   */
+  url?: string;
   /** Expiration du droit de lecture (epoch secondes). */
   expiresAt: number;
 }
@@ -21,6 +27,12 @@ export interface DirectUpload {
   videoId: string;
   /** URL à usage unique vers laquelle le NAVIGATEUR téléverse directement. */
   uploadUrl: string;
+  /**
+   * Méthode HTTP à employer par le navigateur pour téléverser.
+   * `POST` (multipart, défaut) pour Cloudflare/Dev ; `PUT` (corps brut) pour
+   * une URL présignée S3/R2. Le front s'y adapte.
+   */
+  uploadMethod?: 'POST' | 'PUT';
 }
 
 export interface VideoStatus {
