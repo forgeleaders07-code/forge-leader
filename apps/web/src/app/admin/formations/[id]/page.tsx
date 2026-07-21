@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import type { AdminChapter, AdminCourseDetail, AdminLesson, AdminModule } from '@/lib/admin-types';
+import type { PlaybackGrant } from '@/lib/types';
 import { VideoUploader } from '@/components/video-uploader';
 import { QuizEditor } from '@/components/quiz-editor';
 
@@ -465,6 +466,62 @@ function LessonRow({ lesson, courseId }: { lesson: AdminLesson; courseId: string
   );
 }
 
+/**
+ * Aperçu de la vidéo dans l'éditeur admin : lecture réservée au propriétaire
+ * (endpoint admin, sans contrôle d'achat). URL présignée renouvelée avant
+ * expiration. mp4 natif (R2) ou iframe (Cloudflare Stream) selon le provider.
+ */
+function AdminVideoPreview({ lessonId }: { lessonId: string }) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['admin-playback', lessonId],
+    queryFn: () => api<PlaybackGrant>(`/admin/lessons/${lessonId}/playback`, { method: 'POST' }),
+    refetchInterval: (q) => {
+      const grant = q.state.data;
+      if (!grant) return false;
+      return Math.max(30_000, (grant.expiresAt - 120) * 1000 - Date.now());
+    },
+  });
+
+  if (isLoading) {
+    return <p className="text-xs text-muted">Chargement de l&apos;aperçu vidéo…</p>;
+  }
+  if (error || !data) {
+    return (
+      <p className="text-xs text-danger">
+        Aperçu indisponible pour l&apos;instant (la vidéo vient peut-être d&apos;être téléversée).
+      </p>
+    );
+  }
+  if (data.url) {
+    return (
+      <video
+        key={data.url}
+        src={data.url}
+        controls
+        controlsList="nodownload"
+        onContextMenu={(e) => e.preventDefault()}
+        playsInline
+        className="aspect-video w-full rounded-lg border border-line bg-black"
+      >
+        <track kind="captions" />
+      </video>
+    );
+  }
+  if (data.iframeUrl) {
+    return (
+      <iframe
+        key={data.token}
+        src={data.iframeUrl}
+        className="aspect-video w-full rounded-lg border border-line"
+        allow="accelerometer; encrypted-media; picture-in-picture"
+        allowFullScreen
+        title="Aperçu vidéo"
+      />
+    );
+  }
+  return null;
+}
+
 function LessonForm({
   courseId,
   initial,
@@ -531,7 +588,8 @@ function LessonForm({
             className="rounded-lg border border-line bg-soft px-3 py-1.5 text-sm outline-none focus:border-gold"
           />
           {initial ? (
-            <div className="sm:col-span-2">
+            <div className="space-y-3 sm:col-span-2">
+              {initial.streamVideoId && <AdminVideoPreview lessonId={initial.id} />}
               <VideoUploader lessonId={initial.id} courseId={courseId} />
             </div>
           ) : (

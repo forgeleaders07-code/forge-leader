@@ -32,6 +32,25 @@ export default function AdminFormationsPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api(`/admin/courses/${id}`, { method: 'DELETE' }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['admin-courses'] }),
+  });
+
+  function onDelete(course: AdminCourseSummary) {
+    const warning =
+      course.activeEnrollments > 0
+        ? `\n\n⚠️ ${course.activeEnrollments} inscrit(s) actif(s) perdront cette formation.`
+        : '';
+    if (
+      window.confirm(
+        `Supprimer définitivement la formation « ${course.title} » et tout son contenu ?${warning}\n\nCette action est irréversible.`,
+      )
+    ) {
+      deleteMutation.mutate(course.id);
+    }
+  }
+
   function onCreate(e: FormEvent) {
     e.preventDefault();
     if (newTitle.trim().length >= 3) createMutation.mutate(newTitle.trim());
@@ -70,22 +89,34 @@ export default function AdminFormationsPage() {
         {courses?.map((course) => {
           const status = STATUS_LABELS[course.status] ?? STATUS_LABELS.DRAFT;
           return (
-            <Link
+            <div
               key={course.id}
-              href={`/admin/formations/${course.id}`}
-              className="flex items-center justify-between gap-4 rounded-card border border-line bg-surface px-6 py-4 transition hover:border-gold"
+              className="flex items-center gap-3 rounded-card border border-line bg-surface px-6 py-4 transition hover:border-gold"
             >
-              <div className="min-w-0">
-                <p className="truncate font-semibold">{course.title}</p>
-                <p className="mt-1 text-xs text-muted">
-                  /{course.slug} · {course.lessonCount} leçon{course.lessonCount > 1 ? 's' : ''} ·{' '}
-                  {course.activeEnrollments} inscrit{course.activeEnrollments > 1 ? 's' : ''}
-                </p>
-              </div>
-              <span className={`shrink-0 rounded-full border px-3 py-1 text-xs ${status.class}`}>
-                {status.label}
-              </span>
-            </Link>
+              <Link
+                href={`/admin/formations/${course.id}`}
+                className="flex min-w-0 flex-1 items-center justify-between gap-4"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{course.title}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    /{course.slug} · {course.lessonCount} leçon{course.lessonCount > 1 ? 's' : ''} ·{' '}
+                    {course.activeEnrollments} inscrit{course.activeEnrollments > 1 ? 's' : ''}
+                  </p>
+                </div>
+                <span className={`shrink-0 rounded-full border px-3 py-1 text-xs ${status.class}`}>
+                  {status.label}
+                </span>
+              </Link>
+              <button
+                onClick={() => onDelete(course)}
+                disabled={deleteMutation.isPending}
+                title="Supprimer la formation"
+                className="shrink-0 rounded-lg px-2 py-1 text-muted transition hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+              >
+                🗑
+              </button>
+            </div>
           );
         })}
       </div>

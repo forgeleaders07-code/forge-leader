@@ -70,9 +70,10 @@ export class AdminCatalogController {
     return this.catalog.updateCourse(user, id, dto);
   }
 
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Delete('courses/:id')
-  archive(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
-    return this.catalog.archiveCourse(user, id);
+  async remove(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    await this.catalog.deleteCourse(user, id);
   }
 
   // ─── Modules ───
@@ -186,5 +187,11 @@ export class AdminCatalogController {
   @Get('lessons/:id/video-status')
   videoStatus(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.catalog.getLessonVideoStatus(user, id);
+  }
+
+  /** Aperçu vidéo réservé au formateur/admin propriétaire (sans enrollment). */
+  @Post('lessons/:id/playback')
+  videoPlayback(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.catalog.getLessonPlayback(user, id);
   }
 }

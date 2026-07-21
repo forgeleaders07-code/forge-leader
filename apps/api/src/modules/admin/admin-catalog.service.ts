@@ -123,13 +123,15 @@ export class AdminCatalogService {
     return updated;
   }
 
-  /** Archivage (jamais de suppression physique : les enrollments font foi). */
-  async archiveCourse(user: AuthenticatedUser, courseId: string) {
+  /**
+   * Suppression définitive d'une formation et de tout son contenu.
+   * Les relations (modules, chapitres, leçons, quiz, progressions,
+   * certificats, inscriptions) sont en `onDelete: Cascade` : Postgres nettoie
+   * l'ensemble en une opération. Action irréversible — le front confirme.
+   */
+  async deleteCourse(user: AuthenticatedUser, courseId: string) {
     await this.getOwnedCourse(user, courseId);
-    return this.prisma.course.update({
-      where: { id: courseId },
-      data: { status: CourseStatus.ARCHIVED },
-    });
+    await this.prisma.course.delete({ where: { id: courseId } });
   }
 
   // ─────────────────────────── Modules ───────────────────────────
@@ -331,6 +333,20 @@ export class AdminCatalogService {
     }
 
     return { ...status, videoId: lesson.streamVideoId };
+  }
+
+  /**
+   * Droit de lecture pour l'APERÇU admin : permet au formateur/admin
+   * propriétaire de visionner la vidéo dans l'éditeur, sans passer par le
+   * contrôle d'enrollment (réservé aux apprenants). La propriété est vérifiée.
+   */
+  async getLessonPlayback(user: AuthenticatedUser, lessonId: string) {
+    await this.courseOfLesson(user, lessonId);
+    const lesson = await this.prisma.lesson.findUniqueOrThrow({ where: { id: lessonId } });
+    if (!lesson.streamVideoId) {
+      throw new BadRequestException('Aucune vidéo associée à cette leçon');
+    }
+    return this.video.createPlaybackGrant(lesson.streamVideoId);
   }
 
   // ─────────────────────────── privé ───────────────────────────
