@@ -1,7 +1,11 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Logger,
   NotFoundException,
   Param,
@@ -11,7 +15,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { EnrollmentSource, UserRole, UserStatus } from '@prisma/client';
 import { IsEmail, IsOptional, IsString, MaxLength, IsUUID } from 'class-validator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import type { AuthenticatedUser } from '../auth/types/authenticated-user';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { EnrollmentsService } from '../enrollments/enrollments.service';
@@ -187,5 +193,21 @@ export class AdminAccessController {
     if (!user) throw new NotFoundException('Utilisateur introuvable');
     await this.enrollments.revokeAccess(user.id, dto.courseId);
     return { revoked: true };
+  }
+
+  /**
+   * Suppression définitive d'un membre et de toutes ses données (accès,
+   * progression, messages, certificats… en cascade). Irréversible.
+   * Garde-fou : on ne peut pas supprimer son propre compte.
+   */
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Delete('users/:id')
+  async deleteUser(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) {
+    if (actor.id === id) {
+      throw new BadRequestException('Vous ne pouvez pas supprimer votre propre compte.');
+    }
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('Membre introuvable');
+    await this.prisma.user.delete({ where: { id } });
   }
 }

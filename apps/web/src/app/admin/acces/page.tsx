@@ -268,9 +268,21 @@ function GrantAccessSection() {
 
 function MembersSection() {
   const [query, setQuery] = useState('');
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users', query],
     queryFn: () => api<AdminUser[]>(`/admin/users?query=${encodeURIComponent(query)}`),
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: (id: string) => api(`/admin/users/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      setConfirmId(null);
+      void queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: (e) => setError(e instanceof ApiError ? e.message : 'Suppression impossible'),
   });
 
   return (
@@ -285,6 +297,12 @@ function MembersSection() {
         />
       </div>
 
+      {error && (
+        <p className="mb-3 rounded-lg border border-danger/40 bg-danger/10 px-4 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
+
       {isLoading && <p className="text-sm text-muted">Chargement…</p>}
 
       <div className="overflow-x-auto">
@@ -296,6 +314,7 @@ function MembersSection() {
               <th className="px-3 py-2">Statut</th>
               <th className="px-3 py-2">Formations</th>
               <th className="px-3 py-2">Dernière connexion</th>
+              <th className="px-3 py-2 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -328,6 +347,37 @@ function MembersSection() {
                 <td className="px-3 py-2 text-muted">{u.activeEnrollments}</td>
                 <td className="px-3 py-2 text-xs text-muted">
                   {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('fr-FR') : '—'}
+                </td>
+                <td className="px-3 py-2 text-right">
+                  {confirmId === u.id ? (
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => deleteUser.mutate(u.id)}
+                        disabled={deleteUser.isPending}
+                        className="rounded-lg bg-danger px-2 py-1 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                      >
+                        {deleteUser.isPending ? 'Suppression…' : 'Confirmer'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmId(null)}
+                        disabled={deleteUser.isPending}
+                        className="rounded-lg border border-line px-2 py-1 text-xs text-muted transition hover:border-gold disabled:opacity-50"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setError(null);
+                        setConfirmId(u.id);
+                      }}
+                      title="Supprimer le membre"
+                      className="rounded-lg px-2 py-1 text-muted transition hover:bg-danger/10 hover:text-danger"
+                    >
+                      🗑
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
