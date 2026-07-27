@@ -35,8 +35,8 @@ export class R2VideoProvider implements VideoProvider {
   private readonly client: S3Client;
   private readonly bucket: string;
   private readonly ttlSeconds: number;
-  /** TTL de l'URL d'upload : assez large pour un gros fichier sur réseau lent. */
-  private readonly uploadTtlSeconds = 3600;
+  /** TTL de l'URL d'upload : large, pour un gros fichier sur réseau lent (6 h). */
+  private readonly uploadTtlSeconds = 6 * 3600;
 
   constructor(config: ConfigService) {
     const accountId = config.getOrThrow<string>('R2_ACCOUNT_ID');

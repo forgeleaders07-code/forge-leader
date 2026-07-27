@@ -12,7 +12,8 @@ type UploadState =
   | { step: 'ready'; durationSeconds: number | null }
   | { step: 'error'; message: string };
 
-const MAX_BASIC_UPLOAD_BYTES = 200 * 1024 * 1024; // limite upload simple Cloudflare
+// R2 accepte un PUT présigné jusqu'à 5 Go en une seule requête (limite S3).
+const MAX_BASIC_UPLOAD_BYTES = 5 * 1024 * 1024 * 1024;
 
 /**
  * Téléversement direct d'une vidéo vers le fournisseur de streaming :
@@ -53,7 +54,7 @@ export function VideoUploader({ lessonId, courseId }: { lessonId: string; course
     if (file.size > MAX_BASIC_UPLOAD_BYTES) {
       setState({
         step: 'error',
-        message: 'Fichier > 200 Mo — compressez la vidéo ou découpez-la (support des gros fichiers à venir).',
+        message: 'Fichier > 5 Go — compressez la vidéo ou découpez-la en plusieurs leçons.',
       });
       return;
     }
