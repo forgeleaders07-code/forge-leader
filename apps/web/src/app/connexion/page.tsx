@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Flame, ShieldCheck, TrendingUp, Users } from 'lucide-react';
+import { ShieldCheck, TrendingUp, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -46,8 +46,13 @@ export default function ConnexionPage() {
         <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-gold/20 blur-3xl" />
         <div className="absolute -bottom-40 -left-24 h-96 w-96 rounded-full bg-gold/10 blur-3xl" />
 
-        <div className="relative flex items-center gap-2">
-          <Flame className="text-gold" size={28} />
+        <div className="relative flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="La Forge des Leaders"
+            className="h-11 w-11 rounded-lg object-cover"
+          />
           <span className="font-display text-lg font-bold">
             La Forge <span className="text-gold">des Leaders</span>
           </span>
@@ -99,6 +104,12 @@ export default function ConnexionPage() {
           className="w-full max-w-md"
         >
           <div className="mb-8 text-center lg:hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt="La Forge des Leaders"
+              className="mx-auto mb-3 h-16 w-16 rounded-xl object-cover"
+            />
             <p className="font-display text-2xl font-bold">
               La Forge <span className="text-gold">des Leaders</span>
             </p>

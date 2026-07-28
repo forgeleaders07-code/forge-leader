@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Award, GraduationCap, LayoutDashboard, LogOut, MessageCircle, ShieldCheck, Users } from 'lucide-react';
+import { Award, LayoutDashboard, LogOut, MessageCircle, ShieldCheck, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -86,7 +86,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ── Sidebar desktop/tablette ── */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-surface px-4 py-6 md:flex">
         <Link href="/dashboard" className="mb-8 flex items-center gap-2 px-2">
-          <GraduationCap className="text-gold" size={24} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="La Forge des Leaders"
+            className="h-9 w-9 shrink-0 rounded-lg object-cover"
+          />
           <span className="font-display text-sm font-bold leading-tight">
             La Forge
             <br />
@@ -129,7 +134,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* ── Barre supérieure ── */}
         <header className="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur">
           <div className="flex items-center justify-between gap-4 px-4 py-3 md:px-8">
-            <Link href="/dashboard" className="font-display text-base font-bold md:hidden">
+            <Link href="/dashboard" className="flex items-center gap-2 font-display text-base font-bold md:hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="" className="h-7 w-7 rounded-md object-cover" />
               La Forge <span className="text-gold">des Leaders</span>
             </Link>
             <div className="hidden md:block" />
