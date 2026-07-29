@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono, Poppins } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
+import { PwaRegister } from '@/components/pwa-register';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 const poppins = Poppins({
@@ -19,11 +20,14 @@ export const metadata: Metadata = {
   description: 'Campus numérique privé de formation de La Forge des Leaders.',
   robots: { index: false, follow: false }, // campus privé : pas d'indexation
   icons: { icon: '/icon.png.jpeg', apple: '/icon.png.jpeg' }, // logo en icône d'onglet
+  // Installation « comme une appli » sur iPhone/iPad (écran d'accueil).
+  appleWebApp: { capable: true, title: 'La Forge des Leaders', statusBarStyle: 'black-translucent' },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: '#121212',
 };
 
 /** Applique le thème persisté AVANT la première peinture (pas de flash). */
@@ -47,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
+        <PwaRegister />
         <Providers>{children}</Providers>
       </body>
     </html>
