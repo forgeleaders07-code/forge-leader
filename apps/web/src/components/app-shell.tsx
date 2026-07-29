@@ -88,7 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link href="/dashboard" className="mb-8 flex items-center gap-2 px-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.png"
+            src="/icon.png.jpeg"
             alt="La Forge des Leaders"
             className="h-9 w-9 shrink-0 rounded-lg object-cover"
           />
@@ -136,7 +136,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between gap-4 px-4 py-3 md:px-8">
             <Link href="/dashboard" className="flex items-center gap-2 font-display text-base font-bold md:hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="" className="h-7 w-7 rounded-md object-cover" />
+              <img src="/icon.png.jpeg" alt="" className="h-7 w-7 rounded-md object-cover" />
               La Forge <span className="text-gold">des Leaders</span>
             </Link>
             <div className="hidden md:block" />

@@ -49,7 +49,7 @@ export default function ConnexionPage() {
         <div className="relative flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo.png"
+            src="/icon.png.jpeg"
             alt="La Forge des Leaders"
             className="h-11 w-11 rounded-lg object-cover"
           />
@@ -106,7 +106,7 @@ export default function ConnexionPage() {
           <div className="mb-8 text-center lg:hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo.png"
+              src="/icon.png.jpeg"
               alt="La Forge des Leaders"
               className="mx-auto mb-3 h-16 w-16 rounded-xl object-cover"
             />

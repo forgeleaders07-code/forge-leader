@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
   description: 'Campus numérique privé de formation de La Forge des Leaders.',
   robots: { index: false, follow: false }, // campus privé : pas d'indexation
-  icons: { icon: '/logo.png', apple: '/logo.png' }, // logo en icône d'onglet
+  icons: { icon: '/icon.png.jpeg', apple: '/icon.png.jpeg' }, // logo en icône d'onglet
 };
 
 export const viewport: Viewport = {
